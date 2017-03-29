@@ -16,7 +16,6 @@ use Yii;
  */
 class Brand extends \yii\db\ActiveRecord
 {
-    public $logo_file;
     public static $status_name=['-1'=>'删除', 0=>'隐藏', 1=>'正常',];
     /**
      * @inheritdoc
@@ -32,10 +31,10 @@ class Brand extends \yii\db\ActiveRecord
     public function rules()
     {
         return [
-            [['name','status'],'required'],
+            [['name','status','logo'],'required'],
             [['intro'], 'string'],
             [['sort'], 'integer'],
-            ['logo_file', 'file', 'extensions' => ['png','gif','jpg']],
+           // ['logo_file', 'file', 'extensions' => ['png','gif','jpg']],
         ];
     }
 
@@ -48,9 +47,18 @@ class Brand extends \yii\db\ActiveRecord
             'id' => 'id',
             'name' => '名称',
             'intro' => '简介',
-            'logo_file' => 'logo',
+            //'logo_file' => 'logo',
             'sort' => '排序',
             'status' => '状态',
         ];
+    }
+    //判断是本地图片还是网络图片
+    public function imgUrl()
+    {
+        //判断是否有http,如果没有就在前面加上@web别名
+        if(strpos($this->logo,'http://')===false){
+            return '@web'.$this->logo;
+        }
+        return $this->logo;
     }
 }

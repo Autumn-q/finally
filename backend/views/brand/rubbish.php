@@ -12,7 +12,7 @@
         <tr>
             <td><?=$row->id?></td>
             <td><?=$row->name?></td>
-            <td><?=\yii\bootstrap\Html::img('@web/'.$row->logo,['width'=>'30px'])?></td>
+            <td><?=\yii\bootstrap\Html::img($row->imgUrl(),['width'=>'30px'])?></td>
             <td><?=\backend\models\Brand::$status_name[$row->status]?></td>
             <td>
                 <?=\yii\bootstrap\Html::a('撤销',['brand/revoke','id'=>$row->id],['class'=>'btn btn-success'])?>
