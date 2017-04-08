@@ -35,6 +35,7 @@ class ArticleCategory extends \yii\db\ActiveRecord
             [['intro'], 'string'],
             [['status', 'sort', 'is_help'], 'integer'],
             [['name'], 'string', 'max' => 255],
+            [['name'],'unique','message'=>'已存在该分类'],
         ];
     }
 

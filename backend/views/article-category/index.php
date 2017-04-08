@@ -19,8 +19,8 @@
             <td><?=mb_substr($row->name,0,20)?></td>
             <td><?=\backend\models\ArticleCategory::$status_name[$row->status]?></td>
             <td>
-                <?=\yii\bootstrap\Html::a('编辑',['article/edit','id'=>$row->id],['class'=>'btn btn-success'])?>
-                <?=\yii\bootstrap\Html::a('删除',['article/del','id'=>$row->id],['class'=>'btn btn-danger'])?>
+                <?=\yii\bootstrap\Html::a('编辑',['article-category/edit','id'=>$row->id],['class'=>'btn btn-success'])?>
+                <?=\yii\bootstrap\Html::a('删除',['article-category/del','id'=>$row->id],['class'=>'btn btn-danger'])?>
             </td>
         </tr>
     <?php endforeach?>

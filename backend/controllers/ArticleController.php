@@ -6,9 +6,21 @@ use backend\models\Article;
 use backend\models\ArticleDetail;
 use yii\data\Pagination;
 use yii\web\Request;
+use backend\filters\AccessFilter;
 
 class ArticleController extends \yii\web\Controller
 {
+    //添加过滤器
+    public function behaviors()
+    {
+        return [
+            'accessAction'=>[
+                'class'=>AccessFilter::className(),
+                'only'=>['index','add','del','edit'],
+            ],
+        ];
+
+    }
     //展示文章列表
     public function actionIndex()
     {

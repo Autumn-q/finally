@@ -32,6 +32,7 @@ class Brand extends \yii\db\ActiveRecord
     {
         return [
             [['name','status','logo'],'required'],
+            [['name'],'unique','message'=>'已存在该品牌'],
             [['intro'], 'string'],
             [['sort'], 'integer'],
            // ['logo_file', 'file', 'extensions' => ['png','gif','jpg']],

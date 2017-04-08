@@ -2,6 +2,7 @@
 
 namespace backend\controllers;
 
+use backend\filters\AccessFilter;
 use backend\models\Brand;
 use yii\data\Pagination;
 use yii\web\Request;
@@ -11,6 +12,17 @@ use crazyfd\qiniu\Qiniu;
 
 class BrandController extends \yii\web\Controller
 {
+    //添加过滤器
+    public function behaviors()
+    {
+        return [
+            'accessAction'=>[
+                'class'=>AccessFilter::className(),
+                'only'=>['s-upload','index','add','edit','del','revoke','rubbish','delete'],
+            ],
+        ];
+
+    }
     //增加上传文件的插件
     public function actions() {
         return [
