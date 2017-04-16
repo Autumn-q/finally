@@ -11,7 +11,7 @@ use yii\web\Request;
 class AdminController extends \yii\web\Controller
 {
     //添加过滤器
-    public function behaviors()
+    /*public function behaviors()
     {
         return [
             'accessAction'=>[
@@ -20,7 +20,7 @@ class AdminController extends \yii\web\Controller
             ],
         ];
 
-    }
+    }*/
     public function actionIndex()
     {
         $rows = Admin::find()->all();
@@ -184,7 +184,7 @@ class AdminController extends \yii\web\Controller
         \yii::$app->session->setFlash('danger','注销成功');
         return $this->redirect(['admin/login']);
     }
-    /*public function behaviors()
+    public function behaviors()
     {
         return [
           'ACF'=>[
@@ -206,7 +206,7 @@ class AdminController extends \yii\web\Controller
 
           ],
         ];
-    }*/
+    }
     public function actions() {
         return [
             'captcha' =>  [

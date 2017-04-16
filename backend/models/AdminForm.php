@@ -50,13 +50,14 @@ class AdminForm extends Model
 
             //判断是否有这个用户名
             if($admin){
+
                 if(\yii::$app->security->validatePassword($this->password,$admin->password)){
 
                     //验证通过保存session,并把最后登录时间和ip保存到数据库
                     $admin_1 = Admin::findOne(['id'=>$admin->id]);
                     $admin_1->last_login_time = time();
                     $admin_1->last_login_ip = $_SERVER['REMOTE_ADDR'];
-                    $admin_1->save();
+                    $admin_1->save(false);
 
                     \yii::$app->user->login($admin,$this->remember?3600*30*24:0);
 

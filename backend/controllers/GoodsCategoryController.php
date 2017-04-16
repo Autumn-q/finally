@@ -72,10 +72,12 @@ class GoodsCategoryController extends \yii\web\Controller
                 //捕获错误
                 try{
                     if($model->parent_id == 0){
+                        //保存数据到父类中
                         $model->makeRoot();
                     }else{
                         //查找父类
                         $parent = GoodsCategory::findOne(['id'=>$model->parent_id]);
+                        //保存子类数据,关联父类
                         $model->prependTo($parent);
 
                         //修改成功,给用户一个提示并跳转到首页
