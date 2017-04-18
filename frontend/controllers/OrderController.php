@@ -19,7 +19,7 @@ class OrderController extends \yii\web\Controller
          $this->layout = 'cart';
         //判断是否登录,如果没有则需要先登录
         if(\Yii::$app->user->isGuest){
-            return $this->redirect('member/login');
+            return $this->redirect(['member/login']);
         }
         //获取当前登录用户id
         $member_id = \Yii::$app->user->id;

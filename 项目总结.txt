@@ -1,0 +1,274 @@
+Day1
+
+逻辑删除:
+在实际工作中,一些可能还要使用的数据不能直接删除,可以逻辑删除,表结构可以设计为数据有个状态,-1代表逻辑删除,0,隐藏,
+1是正常等等,比如品牌信息,如果某个品牌暂时无货可以改变状态为0,或者-1,等再次上架时修改成1正常.这样可以避免丢失数据,但是缺点是浪费了空间.
+
+七牛云:
+因为网站上传的图片累计起来可能会很多,并且每次加载会占用内存,这时候我们可以启用CDN服务,比如七牛云,让七牛云帮我们存放
+图片,css,音乐等大量静态资源,大大加快网页打开速度,提升用户体验,并且降低服务器压力,七牛云有几个重要属性必填:
+
+$ak = 'MOC_iSWBpvnxZ08W_Os7gYV_a2Qfd7tsXuVByHLD'; 注册七牛云账号后可以得到这两个值
+$sk = 'CUOHCN66-DEA9gEYsLdqDHzMr_-oJMnKzEwlXH10';
+$domain = 'onkbkm74m.bkt.clouddn.com';    这个是保存的地址
+$bucket = 'yiishop';     所属项目(自定义)
+
+具体操作可以查看:http://www.yiichina.com/extension/475
+
+Day2
+
+因为三范式,所以我们会细分数据结构,比如文章表和文章内容表需要分成两个表,两个表由文章id连系起来,因为文章内容的大量文字但更新很少,而文章表的很多字段可能会经常变化,比如:点击量,点赞数等等,分开后更加利于文章表的索引.
+
+Day3
+商品的分类可能会有很多层,因此我们需要设计表的层级结构,可以使用parent_id来联系子类和所属父类,这样的结构想要展示层级结构需要用到递归,这样会大大增加代码量,并且查询效率更低,所以我们可以使用二叉树,在表中增加lft,rgt两个字段,再增加一个tree字段,用于区分树的不同,层级结构可以增加一个字段深度depth,这样查询数据可以使用一条sql,方便效率.
+在yii2中有个组件是嵌套集合,具体实现参考:https://github.com/creocoder/yii2-nested-sets
+具体实现是:
+1.下载组件,有两种方法:
+  a.$ composer require creocoder/yii2-nested-sets
+  b."creocoder/yii2-nested-sets": "0.9.*"  添加到composer.json配置中,在命令行里update
+2.数据迁移,创建数据表
+	$ yii migrate/create create_menu_table
+   创建表:	
+	$this->createTable('{{%menu}}', [
+    	'id' => $this->primaryKey(),
+    	//'tree' => $this->integer()->notNull(),//通常情况下这个是要开的,开启后是可以多棵树
+    	'lft' => $this->integer()->notNull(),
+    	'rgt' => $this->integer()->notNull(),
+    	'depth' => $this->integer()->notNull(),
+    	'name' => $this->string()->notNull(),
+]);
+
+3.创建一个模型,实现这些方法
+use creocoder\nestedsets\NestedSetsBehavior;
+
+class Menu extends \yii\db\ActiveRecord
+{
+    public function behaviors() {
+        return [
+            'tree' => [
+                'class' => NestedSetsBehavior::className(),
+                // 'treeAttribute' => 'tree',//这个通常是要开的
+                // 'leftAttribute' => 'lft',
+                // 'rightAttribute' => 'rgt',
+                // 'depthAttribute' => 'depth',
+            ],
+        ];
+    }
+
+    public function transactions()
+    {
+        return [
+            self::SCENARIO_DEFAULT => self::OP_ALL,
+        ];
+    }
+
+    public static function find()
+    {
+        return new MenuQuery(get_called_class());
+    }
+}
+
+4.创建一个组件,试下这个行为
+use creocoder\nestedsets\NestedSetsQueryBehavior;
+
+class MenuQuery extends \yii\db\ActiveQuery
+{
+    public function behaviors() {
+        return [
+            NestedSetsQueryBehavior::className(),
+        ];
+    }
+}
+
+5.根据父类或子类保存到数据库中
+父类:$countries = new Menu(['name' => 'Countries']);
+     $countries->makeRoot();
+
+子类:$russia = new Menu(['name' => 'Russia']);
+     $russia->prependTo($countries);
+
+另外想要只管展示层级结构,可以使用插件Ztree,地址:http://www.treejs.cn/v3/main.php#_zTreeInfo
+具体实现:
+
+1.在yii2视图界实现以下代码
+
+echo $form->field($model,'parent_id')->hiddenInput();
+echo '<div>
+    <ul id="treeDemo" class="ztree"></ul>
+</div>';
+$tree = <<<ETO
+var zTreeObj;
+        // zTree 的参数配置，深入使用请参考 API 文档（setting 配置详解）
+        var setting = {
+        callback: {
+		onClick: function(event, treeId, treeNode){
+		    $('#goodscategory-parent_id').val(treeNode.id);
+		}
+	        },
+        data: {
+                simpleData: {
+                    enable: true,
+                    idKey: "id",
+                    pIdKey: "parent_id",
+                    rootPId: 0
+                }
+              }
+            };
+        // zTree 的数据属性，深入使用请参考 API 文档（zTreeNode 节点数据详解）
+        var zNodes = {$rows};
+
+        zTreeObj = $.fn.zTree.init($("#treeDemo"), setting, zNodes);
+        zTreeObj.expandAll(true);
+ETO;
+
+2.要加上registerJs($tree),这个方法是注册js代码,否则Js代码不生效
+
+3.另外需要$this->registerJsFile('@web/assets/zTree/js/jquery.ztree.core.js',['depends'=>\yii\web\JqueryAsset::className()]);这个的作用是加载ztree的Js文件,需要依赖原本的jquery文件,说直白了,就是需要在原本的jquery引入后再引入这个文件,否则就是提前使用未加载的基础jquery里的东西,会报错
+4.引入css文件
+
+5.查出的分类数据构造成json格式,分配过来
+	$rows = GoodsCategory::find()->asArray()->all();
+        $rows[]=['id'=>0,'parent_id'=>0,'name'=>'顶级分类'];
+        $rows = Json::encode($rows);
+
+Day4
+商品的管理都是增删改查,需要注意的是,可以使用逻辑删除
+
+Day5
+管理员的管理,密码必须加盐加密,yii2框架中有自带的加盐方法,如果是其他框架,可以使用每个人不同但不变的作为盐,加盐后再md5加密,让用户账号安全性更高,比如可以使用注册时间作为盐.yii2中加盐方法为:\yii::$app->security->generatePasswordHash('123123');
+验证密码:\yii::$app->security->validatePassword('明文','密文');
+
+需要注意的是,在yii2框架中登录的时候需要完成接口,模型继承ActiveRdcord,再实现接口:
+implements IdentityInterface
+只是登录的话,需要实现两个方法:
+1.public static function findIdentity($id)
+    {
+        return self::findOne(['id'=>$id]);
+        // TODO: Implement findIdentity() method.
+    }
+2. public function getId()
+    {
+        return $this->id;
+        // TODO: Implement getId() method.
+    }
+如果还需要自动登录,那么在数据表里需要增加一个自动登录令牌的字段token,并且在接口中海需要再实现两个方法:
+3. public function getAuthKey()
+    {
+        return $this->auth_key;
+        // TODO: Implement getAuthKey() method.
+    }
+4.public function validateAuthKey($authKey)
+    {
+        return $this->auth_key===$authKey;
+        // TODO: Implement validateAuthKey() method.
+    }
+5.在配置文件中的user里设置'identityClass'=>\frontend\models\接口文件类名(),
+
+6.在添加用户时就要把自动登录令牌添加到数据表中,可以使用yii2中自带的方法生成随机字符串:
+\yii::$app->security->generateRandomString();
+
+Day7-Day8
+RBAC 是基于角色的权限控制,是利用表建立关系的,一般来说是需5张表的,分别是:角色表,权限表,用户表,角色权限关系表,角色用户关系表,在yii2框架中只需要三张表,角色权限表,角色用户关系表,角色权限关系表.要实现RBAC,需要用到authManager这个组件
+
+菜单管理:根据当前用户的权限展示不同的菜单栏,这个就要用的RBAC了,因为需要判断当前登录用户的权限,所以需要在用户的活动记录里添加菜单管理的方法,方法实现:
+1.先查出所有菜单的一级分类
+2.在根据查出的所有一级分类,遍历查询二级分类,
+3.再次遍历二级分类,遍历时一一验证当前用户是否有权限,通过:\yii::$app->user->can(权限名)验证.验证通过那么就把二级分类放到提前准备好的数组中,具体结构参考基础菜单模板:
+layouts里的$menuItems,
+4.在这个基础模板里判断是否为游客的地方指定菜单管理方法,并合并之前的菜单,在不是游客时,添加一行:$menuItems = \yii\helpers\ArrayHelper::merge($menuItems,Yii::$app->user->identity->getMenuItems());
+
+Day10
+注册和登录功能和后天大同小异,只是做模板比较麻烦:
+1.在assets文件下新建类,继承AssetBundle类,在这里我们可以设置需要引入的静态资源文件,因为模板有自己的样式,所以我们需要注释掉下面的bootstrap文件,在视图中也不调用bootstrap的类了,而是调用它的父类:helpers,form标题也调用widgets类
+2.在视图文件中的layouts中新建文件,用来做基础模板,参照main.php来做,需要注意的是{$content},就是我们后面视图文件需要显示的内容,因此这个{$content}位置需要注意.还有一个需要注意的是:
+<?= Html::csrfMetaTags() ?>
+<title><?= Html::encode($this->title) ?></title>
+<?php $this->head() ?>
+这些调用方法一定一定要写完,我因为少写了最后的<?php $this->endBody() ?>和<?php $this->endPage() ?>,导致CSS文件不能引入
+3.在控制器里指定布局文件 public $layout = 'address';
+
+地址管理的三级联动有两个方法,一种是利用ajax来做,但每次都会去请求数据库,效率相对更低,增加数据库压力,另一种方法是使用js文件,这个文件已经写好了所有省市县数据和对应关系,联动关系也已经建立好了,我们只需要做以下几个步骤:
+1.Cope这个Js文件到web下的Js文件中
+2.因为这个js文件需要在头部就引入,所以在addreAsset文件中添加一个属性:
+public $jsOptions = [
+        'position'=>\yii\web\View::POS_HEAD,
+    ];
+指定文件在头部引入,在这个文件中的js属性里添加上该js文件的引入路径
+3.在form表单里写select标签
+4.在视图文件最后里添加:
+<script type="text/javascript">
+	addressInit('cmbProvince','cmbCity','cmbArea','defualtProvince','defualtCity','defualtArea');
+</script>
+也可以使用注册js代码形式使用这个函数,注意前三个参数必须和select标签里的id一致,后三个参数是默认显示省市县,如果想修改,可以直接写入,不过写入的默认参数必须有并且联动关系要一致,否则修改后没有作用.
+
+短信验证其实就是我们自己生成一个随机数字,根据用户输入的手机号,将我们随机生成的数字发送给用户,然后将用户的手机号和随机数字保存到session中,自定义一个验证规则,从session中获取对比,发短信可以利用阿里大于来做,具体实现参考https://github.com/flc1125/alidayu
+https://github.com/flc1125/alidayu
+<?php
+use Flc\Alidayu\Client;
+use Flc\Alidayu\App;
+use Flc\Alidayu\Requests\AlibabaAliqinFcSmsNumSend;
+use Flc\Alidayu\Requests\IRequest;
+
+// 配置信息
+$config = [
+    'app_key'    => '*****',//注册阿里大于后可以查到这两个数据
+    'app_secret' => '************',
+    // 'sandbox'    => true,  // 是否为沙箱环境，默认false
+];
+
+
+// 使用方法一
+$client = new Client(new App($config));
+$req    = new AlibabaAliqinFcSmsNumSend;
+
+$req->setRecNum('13312311231')
+    ->setSmsParam([
+        'number' => rand(100000, 999999)//这个是随机生成的数字,前面的Number需要和我们阿里大于起的名字一致
+    ])
+    ->setSmsFreeSignName('叶子坑') 
+    ->setSmsTemplateCode('SMS_15105357');
+
+$resp = $client->execute($req);
+
+Day11
+widgets:小部件.这个功能帮我们提取出公共部分,简化页面代码,使视图页面的php代码减少,并且可以随机引入,非常方便
+
+购物车
+
+最重要的还是购物车功能,购物车功能的思路:
+1.当用户没有登录时
+  1)用户没有登录,我们只能保存到cookie中
+  2)如果用户之前也选择了该商品到购物车,那么我们就不能替换,而是在原基础上增加
+  3)怎么才能知道有没有,我们可以使用一个固定的数组来保存商品和数量的对应关系
+  4)判断后保存到cookie中
+
+2.当用户已经登录时,思路和没有登录基本一致
+  1)为了同步用户的购物车信息,可以随时登录查看购物车信息,所以保存到数据库中
+  2)购物车表结构需要有member_id,goods_id,count(数量)
+  3)当用户点击加入购物车后,我们要先查看该用户曾经有没有加入过购物车
+  4)先查数据库,如果有该商品,那么我们就在原有数量上增加这次加入购物车的数量,如果没有那么就新添加到数据库
+
+3.当用户没有登录,中途点击了登录的情况
+  1)我们不知道用户什么时候加入过购物车,但是如果他在登录前有操作过,那么cookie中是有值的,可以在登录成功后,从cookie中取出数据
+  2)取出的数据同样需要保存到数据库中,那么就需要查询数据库,步骤和已登录基本一致
+  3)如果登录前没有操作过购物车,那么cookie中没有数据,这里判断一下是否有值,进行不同的操作
+
+Day12-13
+发送ajax请求时要注意,js是面向对象的语言,因此找到的对象都是对象,需要把值取出来才能用
+csrf发送请求的名字必须是"_csrf-frontend",否则就没有效果,这个可以在配置文件main里的组件里修改
+订单设计思路:
+1.首先要有权限控制,如果没有登录就需要先登录
+2.订单需要保存收货地址信息,用户id,配送方式,运费,付款方式,订单状态,总共价格,第三方交易方式等
+3.订单确认页要展示当前用户的所有保存过的收货地址
+4.显示所有配送方式,让用户选择,每种配送方式价格是多少,点击不同的配送方式下面的总价格也需要跟着一起改变,利用js完成,数据库中用1,2,3,4来保存
+5.可以选择不同的付款方式,数据库中用1,2,3,4来保存
+6.确认订单号还有个非常中重要!重要!重要!的地方是,需要先判断该商品库存是否足够,如果库存小于用户选择的数量,需要利事务回滚
+7.库存足够就保存订单信息，并减少该数量的商品库存数量
+
+微信支付我们需要做的：
+1.生成订单
+2.调用API接口
+3.接收返回的预支付url,并生成二维码给用户扫码
+4.接收用户付款情况，如果用户支付就改变订单状态，如果已经改变了，就不管（因为支付结果会发多次给我们）
+5.发货
+
