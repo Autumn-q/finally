@@ -92,4 +92,30 @@ class MemberForm extends Model
         }
         return false;
     }
+    //验证登录信息
+    public function weChatLogin($openId)
+    {
+        if($this->validate()){
+            $member = Member::findOne(['username'=>$this->username])?Member::findOne(['username'=>$this->username]):Member::findOne(['email'=>$this->username]);
+            //如果有查到数据,那么就验证密码
+            if($member){
+                //如果密码正确,就保存到session中,返回true
+                if(\yii::$app->security->validatePassword($this->password,$member->password)){
+
+                    //验证成功,把最后登录ip和最后登录时间添加到数据库
+                    $member->last_login_time = time();
+                    $member->last_login_ip = $_SERVER['REMOTE_ADDR'];
+                    $member->openId = $openId;
+                    $member->save(false);
+                    \Yii::$app->user->login($member,$this->remember?3600*24*7:0);
+                    \Yii::$app->session->setFlash('success','登录成功');
+
+                    return true;
+                }
+                $this->addError('password','密码错误');
+            }
+            $this->addError('username','用户名错误');
+        }
+        return false;
+    }
 }

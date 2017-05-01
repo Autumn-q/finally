@@ -2,6 +2,7 @@
 
 namespace frontend\models;
 
+use EasyWeChat\Message\News;
 use Yii;
 
 /**
@@ -73,5 +74,40 @@ class Goods extends \yii\db\ActiveRecord
     public function getGoodsBrand()
     {
         return $this->hasOne(Brand::className(),['id'=>'brand_id']);
+    }
+    //最热商品
+    public static function port()
+    {
+        //查出最新的5个商品
+        $articles = self::find()->orderBy(['inputtime'=>'SORT_DESC'])->limit(5)->all();
+
+        $result = [];
+        foreach ($articles as $article) {
+            $news = new News([
+                'title' => $article->name,
+                'description' => '',
+                'url' => 'http://www.baidu.com',
+                'image' => $article->logo,
+            ]);
+            $result[] = $news;
+        }
+        return $result;
+    }
+    public static function hotSort()
+    {
+        //查出最新的5个商品
+        $articles = self::find()->where(['is_on_sale'=>2])->limit(5)->all();
+
+        $result = [];
+        foreach ($articles as $article) {
+            $news = new News([
+                'title' => $article->name,
+                'description' => '',
+                'url' => 'http://www.baidu.com',
+                'image' => $article->logo,
+            ]);
+            $result[] = $news;
+        }
+        return $result;
     }
 }

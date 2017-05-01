@@ -42,13 +42,14 @@ class Member extends \yii\db\ActiveRecord implements IdentityInterface
     public function rules()
     {
         return [
-            [['username', 'password', 'email','repassword'], 'required'],
+            [['username', 'password','email','repassword'], 'required'],
             [['status', 'create_add', 'updated_at', 'last_login_time', 'last_login_ip'], 'integer'],
             [['username', 'password', 'email'], 'string', 'max' => 255],
             [['auth_key'], 'string', 'max' => 32],
             [['tel'],'string','max'=>11],
             [['email'], 'email'],
             ['code','captcha'],
+            ['openId','safe'],
             ['repassword', 'compare','compareAttribute'=>'password','message'=>'两次密码输入不一致'],
             ['tel_captcha','validateCaptcha'],
         ];
@@ -61,11 +62,6 @@ class Member extends \yii\db\ActiveRecord implements IdentityInterface
         if($code != $this->tel_captcha){
             $this->addError('短信验证码错误');
         }
-    }
-    //发送短信的方法
-    public static function telCaptcha($tel)
-    {
-
     }
 
 

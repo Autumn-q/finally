@@ -36,8 +36,8 @@ return [
          * callback：OAuth授权完成后的回调页地址
          */
         'oauth' => [
-            'scopes'   => ['snsapi_userinfo'],
-            'callback' => '/examples/oauth_callback.php',
+            'scopes'   => ['snsapi_base'],//用户信息的内容
+            'callback' => '/wechat/callback',//授权回调页面
         ],
         /**
          * 微信支付

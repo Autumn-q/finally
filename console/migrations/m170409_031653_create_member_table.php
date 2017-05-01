@@ -24,6 +24,7 @@ class m170409_031653_create_member_table extends Migration
             'updated_at' => $this->integer(),
             'last_login_time' => $this->integer()->notNull(),
             'last_login_ip' => $this->integer()->notNull(),
+            'openId'=>$this->string(50)->comment('用户id'),
         ]);
     }
 
